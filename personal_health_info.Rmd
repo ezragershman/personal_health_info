@@ -1,0 +1,57 @@
+---
+title: "PersonalHealth"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+library(readr)
+library(dplyr)
+
+```
+
+
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+cleaned_steps_data <- read_csv("cleaned_steps_data.csv",
+  col_types = cols(startDate = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+  endDate = col_datetime(format = "%Y-%m-%d %H:%M:%S"),
+  date = col_date(format = "%Y-%m-%d")))
+
+```
+
+
+```{r}
+daily_steps_summary <- cleaned_steps_data %>%
+  group_by(date) %>%
+  summarise(total_steps = sum(value), .groups = 'drop')
+```
+
+```{r}
+summary_stats <- daily_steps_summary %>%
+  summarise(
+    mean_steps = mean(total_steps, na.rm = TRUE),
+    median_steps = median(total_steps, na.rm = TRUE),
+    min_steps = min(total_steps, na.rm = TRUE),
+    max_steps = max(total_steps, na.rm = TRUE)
+  )
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
