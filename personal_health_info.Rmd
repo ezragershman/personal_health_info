@@ -9,13 +9,19 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## R Markdown
+
+```{r}
+install.packages("ggplot2")
+install.packages("lubridate")
+```
+
 ```{r}
 library(readr)
 library(dplyr)
+library(ggplot2)
+library(lubridate)  # for date-time functions
 
 ```
-
-
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
@@ -28,7 +34,6 @@ cleaned_steps_data <- read_csv("cleaned_steps_data.csv",
   date = col_date(format = "%Y-%m-%d")))
 
 ```
-
 
 ```{r}
 daily_steps_summary <- cleaned_steps_data %>%
@@ -44,6 +49,192 @@ summary_stats <- daily_steps_summary %>%
     min_steps = min(total_steps, na.rm = TRUE),
     max_steps = max(total_steps, na.rm = TRUE)
   )
+```
+
+```{r}
+ggplot(daily_steps_summary, aes(x = date, y = total_steps)) +
+  geom_line(color = "blue") +
+  labs(title = "Daily Steps Over Time", x = "Date", y = "Total Steps") +
+  theme_minimal()
+```
+
+```{r step_summary, echo=FALSE}
+# Plot with custom colors for each year from 2015 to 2024
+ggplot(daily_steps_summary, aes(x = date, y = total_steps, color = year)) +
+  geom_line() +
+  geom_smooth(method = "loess", se = FALSE, color = "black", linetype = "dashed") +
+  geom_point(data = max_point, aes(x = date, y = total_steps), color = "red", size = 3, shape = 18) +
+  geom_point(data = min_point, aes(x = date, y = total_steps), color = "blue", size = 3, shape = 18) +
+  labs(title = "Daily Steps Over Time with Trendline",
+       x = "Date", y = "Total Steps") +
+  theme_minimal() +
+  scale_color_manual(values = c(
+    "2015" = "#1b9e77", "2016" = "#d95f02", "2017" = "#7570b3", 
+    "2018" = "#e7298a", "2019" = "#66a61e", "2020" = "#e6ab02",
+    "2021" = "#a6761d", "2022" = "#666666", "2023" = "#1f78b4",
+    "2024" = "#33a02c"  # Change 2024 to a visible color
+  ))
+
+```
+
+```{r}
+ggplot(daily_steps_summary, aes(x = total_steps)) +
+  geom_histogram(binwidth = 1000, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Daily Steps", x = "Steps", y = "Frequency") +
+  theme_minimal()
+```
+
+```{r}
+# Remove rows with NA in the date column
+daily_steps_summary <- daily_steps_summary %>%
+  filter(!is.na(date))
+```
+
+```{r}
+# Plot with faceting by year and consistent color coding
+ggplot(daily_steps_summary, aes(x = date, y = total_steps, color = year)) +
+  geom_line() +
+  geom_smooth(method = "loess", se = FALSE, linetype = "dashed", color = "black") + # Trendline
+  geom_point(data = max_point, aes(x = date, y = total_steps), color = "red", size = 3, shape = 18) +
+  geom_point(data = min_point, aes(x = date, y = total_steps), color = "blue", size = 3, shape = 18) +
+  labs(title = "Daily Steps by Year with Trendline",
+       x = "Date", y = "Total Steps") +
+  theme_minimal() +
+  scale_color_manual(values = c(
+    "2015" = "#1b9e77", "2016" = "#d95f02", "2017" = "#7570b3", 
+    "2018" = "#e7298a", "2019" = "#66a61e", "2020" = "#e6ab02",
+    "2021" = "#a6761d", "2022" = "#666666", "2023" = "#1f78b4",
+    "2024" = "#33a02c"
+  )) +
+  facet_wrap(~year, scales = "free_x") +   # Facet by year with separate x-axis scales
+  theme(axis.text.x = element_text(size = 6, angle = 45, hjust = 1))  # Reduce x-axis label size and angle them
+
+
+```
+
+```{r}
+
+# Extract date components
+daily_steps_summary <- daily_steps_summary %>%
+  mutate(
+    month = format(date, "%m"),        # Month as a two-digit number
+    day_of_week = format(date, "%A"),  # Full day name (e.g., Monday, Tuesday)
+    day_of_month = format(date, "%d")  # Day of the month as a two-digit number
+  )
+```
+
+```{r}
+# Summarize by month
+monthly_summary <- daily_steps_summary %>%
+  group_by(month) %>%
+  summarise(
+    avg_steps = mean(total_steps, na.rm = TRUE),
+    min_steps = min(total_steps, na.rm = TRUE),
+    max_steps = max(total_steps, na.rm = TRUE)
+  )
+
+```
+
+```{r}
+# Summarize by day of the week
+day_of_week_summary <- daily_steps_summary %>%
+  group_by(day_of_week) %>%
+  summarise(
+    avg_steps = mean(total_steps, na.rm = TRUE),
+    min_steps = min(total_steps, na.rm = TRUE),
+    max_steps = max(total_steps, na.rm = TRUE)
+  )
+
+```
+
+```{r}
+ggplot(monthly_summary, aes(x = month, y = avg_steps)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Average Steps per Month", x = "Month", y = "Average Steps") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(day_of_week_summary, aes(x = day_of_week, y = avg_steps)) +
+  geom_bar(stat = "identity", fill = "coral") +
+  labs(title = "Average Steps by Day of the Week", x = "Day of the Week", y = "Average Steps") +
+  theme_minimal()
+
+```
+
+```{r}
+# Convert startDate to a datetime format (if not already in one)
+cleaned_steps_data <- cleaned_steps_data %>%
+  mutate(
+    startDate = as.POSIXct(startDate, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    hour = hour(startDate)  # Extract hour from startDate
+  )
+```
+
+```{r}
+# Summarize steps by hour
+hourly_steps_summary <- cleaned_steps_data %>%
+  group_by(hour) %>%
+  summarise(
+    total_steps = sum(value, na.rm = TRUE),
+    avg_steps = mean(value, na.rm = TRUE)
+  )
+
+```
+
+```{r}
+# Plot average steps by hour
+ggplot(hourly_steps_summary, aes(x = hour, y = avg_steps)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(color = "darkblue") +
+  labs(title = "Average Steps by Hour of Day", x = "Hour of Day", y = "Average Steps") +
+  theme_minimal()
+```
+
+```{r}
+# Detailed hourly steps data by date
+hourly_steps_detailed <- cleaned_steps_data %>%
+  mutate(
+    date = as.Date(startDate)
+  ) %>%
+  group_by(date, hour) %>%
+  summarise(
+    total_steps = sum(value, na.rm = TRUE)
+  )
+```
+
+```{r}
+hourly_steps_detailed <- hourly_steps_detailed %>%
+  mutate(day_type = ifelse(weekdays(date) %in% c("Saturday", "Sunday"), "Weekend", "Weekday"))
+
+weekday_vs_weekend <- hourly_steps_detailed %>%
+  group_by(day_type, hour) %>%
+  summarise(avg_steps = mean(total_steps, na.rm = TRUE))
+```
+
+```{r}
+ggplot(weekday_vs_weekend, aes(x = hour, y = avg_steps, color = day_type)) +
+  geom_line(size = 1) +
+  labs(title = "Hourly Steps: Weekday vs Weekend", x = "Hour of Day", y = "Average Steps") +
+  theme_minimal()
+
+```
+
+```{r}
+
+ggplot(hourly_steps_detailed, aes(x = hour, y = date, fill = total_steps)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "C") +
+  labs(title = "Heatmap of Steps by Hour and Date", x = "Hour of Day", y = "Date") +
+  theme_minimal()
+```
+
+```{r}
+top_days_by_hour <- hourly_steps_detailed %>%
+  group_by(hour) %>%
+  top_n(1, total_steps) %>%
+  arrange(hour, desc(total_steps))
+
 ```
 
 ## Including Plots
